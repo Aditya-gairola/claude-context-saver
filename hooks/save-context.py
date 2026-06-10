@@ -46,14 +46,18 @@ def render_block(block, lines):
     # thinking blocks and unknown types are skipped on purpose
 
 
-def find_last_boundary(path):
-    """Line index and timestamp of the last compaction boundary, if any.
+KEEP_SEGMENTS = 2  # dump the conversation of the last N compaction segments
 
-    Long-lived sessions keep one transcript across many compactions; everything
-    before the last boundary was already handled by earlier dumps, so saving it
-    again produces multi-MB files.
+
+def find_start_boundary(path):
+    """Line index and timestamp of the boundary KEEP_SEGMENTS compactions back.
+
+    Long-lived sessions keep one transcript across many compactions; dumping it
+    from the beginning every time produces multi-MB files of duplicated history.
+    Keeping the last KEEP_SEGMENTS segments gives one segment of overlap with
+    the previous dump as a safety margin.
     """
-    last, ts = -1, ""
+    boundaries = []
     with open(path, "r", errors="replace") as f:
         for i, raw in enumerate(f):
             if '"compact_boundary"' not in raw:
@@ -63,8 +67,10 @@ def find_last_boundary(path):
             except json.JSONDecodeError:
                 continue
             if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
-                last, ts = i, e.get("timestamp", "")
-    return last, ts
+                boundaries.append((i, e.get("timestamp", "")))
+    if len(boundaries) < KEEP_SEGMENTS:
+        return -1, ""
+    return boundaries[-KEEP_SEGMENTS]
 
 
 def main():
@@ -87,9 +93,9 @@ def main():
         out_path = os.path.join(OUT_DIR, f"{stamp}-{n}-context.md")
         n += 1
 
-    boundary_line, boundary_ts = find_last_boundary(transcript_path)
+    boundary_line, boundary_ts = find_start_boundary(transcript_path)
     covers = (
-        f"conversation since the previous compaction ({boundary_ts})"
+        f"last {KEEP_SEGMENTS} compaction segments (since {boundary_ts})"
         if boundary_line >= 0 else "entire session"
     )
 
