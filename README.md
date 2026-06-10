@@ -17,7 +17,10 @@ Two hooks are registered in `~/.claude/settings.json`:
 
 1. **PreCompact** — before any compaction (automatic or `/compact`), the full
    session transcript is converted to readable markdown and saved to
-   `~/claude-context/<mon-dd-hh-mm>-context.md`.
+   `~/claude-context/<mon-dd-hh-mm>-context.md`. In long-lived sessions that
+   have compacted before, only the conversation since the previous compaction
+   is saved — earlier segments already have their own dumps — so files stay
+   small with no duplication.
 2. **SessionStart (compact)** — immediately after compaction, a short note is
    injected into the fresh context with the path of the saved file, so Claude
    can read it to recover details instead of guessing.
