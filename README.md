@@ -25,6 +25,27 @@ Two hooks are registered in `~/.claude/settings.json`:
 The hooks are executed by the Claude Code harness itself, so this works in
 every session on the machine with no per-chat setup.
 
+## How this differs from Claude Code's built-in behavior
+
+Claude Code already does some of this on its own, but with gaps:
+
+- **Compaction summary.** On compact, Claude Code generates a summary and
+  carries it into the new context. The summary is lossy by design; fine-grained
+  details (file contents, exact configs, debugging history) do not survive.
+  This tool keeps the complete conversation, not a summary.
+- **Transcripts on disk.** Claude Code stores every session as a JSONL file
+  under `~/.claude/projects/`, but it is machine-format, deleted after 30 days
+  by default, and the post-compact session is never informed it exists. This
+  tool converts it to permanent, readable markdown at the moment of compaction.
+- **`/export` command.** Produces a similar readable export, but only when you
+  remember to run it. Auto-compact usually triggers when you are not watching,
+  which is exactly when an export matters most. This tool runs automatically on
+  every compaction.
+- **Post-compact awareness.** Nothing built-in tells the new context where the
+  old conversation went; that is why Claude seems unfamiliar with prior work
+  after compacting. The SessionStart hook closes this gap by injecting the
+  saved file's path into the fresh context.
+
 ## Install
 
 ```bash
