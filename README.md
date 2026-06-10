@@ -78,3 +78,13 @@ deleted or overwritten; name collisions get a numeric suffix.
 
 Delete the two scripts from `~/.claude/hooks/` and remove their entries from
 the `hooks` section of `~/.claude/settings.json`.
+
+## Notes
+
+This is an unofficial convenience tool, not affiliated with Anthropic. It
+depends on Claude Code's current transcript format and hook behavior, so a
+future Claude Code release may require updating the scripts.
+
+## License
+
+MIT
