@@ -46,9 +46,6 @@ Claude Code already does some of this on its own, but with gaps:
   after compacting. The SessionStart hook closes this gap by injecting the
   saved file's path into the fresh context.
 
-A detailed internal walkthrough with diagrams is in
-[ARCHITECTURE.md](ARCHITECTURE.md).
-
 ## Install
 
 ```bash
