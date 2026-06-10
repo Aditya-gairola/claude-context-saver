@@ -46,6 +46,27 @@ def render_block(block, lines):
     # thinking blocks and unknown types are skipped on purpose
 
 
+def find_last_boundary(path):
+    """Line index and timestamp of the last compaction boundary, if any.
+
+    Long-lived sessions keep one transcript across many compactions; everything
+    before the last boundary was already handled by earlier dumps, so saving it
+    again produces multi-MB files.
+    """
+    last, ts = -1, ""
+    with open(path, "r", errors="replace") as f:
+        for i, raw in enumerate(f):
+            if '"compact_boundary"' not in raw:
+                continue
+            try:
+                e = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
+                last, ts = i, e.get("timestamp", "")
+    return last, ts
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
@@ -66,17 +87,26 @@ def main():
         out_path = os.path.join(OUT_DIR, f"{stamp}-{n}-context.md")
         n += 1
 
+    boundary_line, boundary_ts = find_last_boundary(transcript_path)
+    covers = (
+        f"conversation since the previous compaction ({boundary_ts})"
+        if boundary_line >= 0 else "entire session"
+    )
+
     lines = [
         "# Claude session context dump",
         f"- Session: {session_id}",
         f"- Saved: {now.isoformat(timespec='seconds')}",
         f"- Trigger: {hook_input.get('trigger', 'unknown')} compact",
+        f"- Covers: {covers}",
         f"- Source transcript: {transcript_path}",
         "",
     ]
 
     with open(transcript_path, "r", errors="replace") as f:
-        for raw in f:
+        for i, raw in enumerate(f):
+            if i <= boundary_line:
+                continue
             raw = raw.strip()
             if not raw:
                 continue
